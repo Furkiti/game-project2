@@ -1,0 +1,28 @@
+using System;
+using NaughtyAttributes;
+using Scriptables;
+using UnityEngine;
+
+namespace Managers
+{
+    public static class EventManager
+    {
+        [Header("Dependencies")] 
+        [Header("Game Events")] 
+        public static Action OnGameLoaded;
+        public static Action OnGameStarted;
+        public static Action OnGameCompleted;
+        public static Action OnGameFailed;
+        public static Action OnGameReset;
+
+
+        public static Action<StackPlacement> OnStackBlockPlaced;
+
+
+
+
+
+    }
+}
+    
+
