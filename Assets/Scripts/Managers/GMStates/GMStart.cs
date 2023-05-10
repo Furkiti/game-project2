@@ -14,7 +14,6 @@ namespace Managers.GMStates
         public override void Enter()
         {
             base.Enter();
-            
             EventManager.OnGameStarted.Invoke();
         }
 
@@ -24,11 +23,11 @@ namespace Managers.GMStates
             
             if (Input.GetKey(KeyCode.U))
             {
-                GameManager.Instance.ChangeState(GameManager.Instance.gmLoadState);
+                GameManager.Instance.ChangeState(GameManager.Instance.gmFailedState);
             }
             else if (Input.GetKey(KeyCode.P))
             {
-                GameManager.Instance.ChangeState(GameManager.Instance.gmWinState);
+                GameManager.Instance.ChangeState(GameManager.Instance.gmCompletedState);
             }
         }
     }

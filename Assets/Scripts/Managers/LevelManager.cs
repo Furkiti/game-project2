@@ -1,11 +1,37 @@
+using DG.Tweening;
+using UnityEngine;
+
 namespace Managers
 {
-    public static class LevelManager
+    [SerializeField]
+    public class LevelDatas
     {
-        private static string levelStr = "level";
-        private static int initialLevel = 1;
+        public float Width;
+        public float Height;
+        public float Length;
+        public float ToleranceWidth;
+        public float Speed;
+        public int PieceCount;
+        public float FinalPosition;
+    }
     
-        public static int CurrentLevel
+    public class LevelManager : MonoBehaviour
+    {
+        private string levelStr = "level";
+        private int initialLevel = 1;
+        
+        public float ReplayWaitDuration;
+        public float PieceWidth;
+        public float PieceHeight;
+        public float PieceLength;
+        public float ToleranceWidth;
+        public float Speed;
+        public int PieceCountMin;
+        public int PieceCountMax;
+        public GameObject FinishLinePrefab;
+        private float finishLength;
+        
+        private int CurrentLevel
         {
             get
             {
@@ -18,7 +44,77 @@ namespace Managers
                 return initialLevel;
             }
 
-            set => Save.Save.SetSavedData(levelStr, value);
+            set
+            {
+                Save.Save.SetSavedData(levelStr, value);
+                EventManager.OnLevelNumberChanged?.Invoke(value);
+            }
         }
+
+        private void OnEnable()
+        {
+            EventManager.OnGameLoaded += OnGameLoaded;
+            EventManager.OnGameContinue += OnContinueNewLevel;
+            EventManager.OnGameFailed += OnGameFailed;
+        }
+
+        private void OnDisable()
+        {
+            EventManager.OnGameLoaded -= OnGameLoaded;
+            EventManager.OnGameContinue -= OnContinueNewLevel;
+            EventManager.OnGameFailed -= OnGameFailed;
+        }
+
+        private void OnGameLoaded()
+        {
+            finishLength = FinishLinePrefab.GetComponent<MeshRenderer>().bounds.extents.z;
+            LoadNewLevel();
+        }
+        
+        private void OnContinueNewLevel()
+        {
+            CurrentLevel++;
+            LoadNewLevel();
+        }
+        
+        private void OnGameFailed()
+        {
+            DOVirtual.DelayedCall(ReplayWaitDuration, TriggerReplay);
+        }
+        
+        private void TriggerReplay()
+        {
+            EventManager.OnGameReset?.Invoke();
+        }
+        
+        private void LoadNewLevel()
+        {
+            LevelDatas levelParameter = GetLevelDifficulty();
+            levelParameter.FinalPosition =(PieceLength * levelParameter.PieceCount)+PieceLength/2f+finishLength;
+            EventManager.OnLevelReady?.Invoke(levelParameter);
+        }
+        
+        private LevelDatas GetLevelDifficulty()
+        {
+            var pieceCount = Random.Range(PieceCountMin, PieceCountMax);
+           
+            LevelDatas levelDatas = new LevelDatas()
+            {
+                Width = PieceWidth,
+                Height = PieceHeight,
+                Length = PieceLength,
+                Speed = Speed,
+                ToleranceWidth =ToleranceWidth,
+                PieceCount = pieceCount
+            };
+            
+            return levelDatas;
+        }
+
+      
+
+       
+        
+        
     }
 }

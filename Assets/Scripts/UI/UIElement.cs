@@ -18,8 +18,6 @@ namespace UI
         public UIAnimation uiAnimation;
         public float duration;
         public Ease ease;
-
-       
     }
 
     [System.Serializable]

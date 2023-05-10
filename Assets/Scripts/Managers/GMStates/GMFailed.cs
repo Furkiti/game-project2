@@ -2,11 +2,11 @@
 
 namespace Managers.GMStates
 {
-    public class GMLose : BaseState
+    public class GMFailed : BaseState
     {
         private readonly GameManager _sm;
 
-        public GMLose(GameManager stateMachine) : base("GMLose", stateMachine) {
+        public GMFailed(GameManager stateMachine) : base("GMFailed", stateMachine) {
             _sm = stateMachine;
         }
 

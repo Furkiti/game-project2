@@ -11,21 +11,23 @@ namespace Managers
     public class UIManager : Singleton<UIManager>
 {
     [Header("Canvas Scaler")]
-    public CanvasScaler mainCanvasScaler;
+    [SerializeField]private CanvasScaler mainCanvasScaler;
     
     [Header("Canvases")]
-    public RectTransform mainMenuCanvas;
-    public RectTransform inGameCanvas;
+    [SerializeField]private RectTransform mainMenuCanvas;
+    [SerializeField]private RectTransform inGameCanvas;
+    
+    [SerializeField] private Button tapToStartButton;
+    
     
     private List<UIElement> _mainMenuUIElements = new List<UIElement>();
     private List<UIElement> _inGameUIElements = new List<UIElement>();
     private List<UIElement> _gameCompletedUIElements = new List<UIElement>();
-   
-
+    
     private float _canvasX;
     private float _canvasY;
     
-    protected  void Awake()
+    private void Awake()
     {
         SetCanvasScale();
         GetUIElements();
@@ -53,27 +55,34 @@ namespace Managers
     {
         EventManager.OnGameLoaded += LevelLoaded;
         EventManager.OnGameStarted += LevelStarted;
+        tapToStartButton.onClick.AddListener(OnTapToStartButtonClicked);
     }
     
     private void OnDisable()
     {
         EventManager.OnGameLoaded -= LevelLoaded;
         EventManager.OnGameStarted -= LevelStarted;
+        tapToStartButton.onClick.RemoveListener(OnTapToStartButtonClicked);
     }
     
     
-    public void LevelLoaded()
+    private void LevelLoaded()
     {
         ActivateUIElements(_mainMenuUIElements);
     }
     
-    public void LevelStarted()
+    private void LevelStarted()
     {
         DeactivateUIElements(_mainMenuUIElements);
         ActivateUIElements(_inGameUIElements);
     }
 
-    public void LevelCompleted(int level)
+    private void OnTapToStartButtonClicked()
+    {
+        EventManager.OnGameStarted?.Invoke();
+    }
+
+    private void LevelCompleted(int level)
     {
         DeactivateUIElements(_inGameUIElements);
         ActivateUIElements(_gameCompletedUIElements);
@@ -94,7 +103,6 @@ namespace Managers
             uiElements[i].DeactivateUI();
         }
     }
-
     
     public void ActivateUI(RectTransform activatedUI,float duration,Ease easeType)
     {

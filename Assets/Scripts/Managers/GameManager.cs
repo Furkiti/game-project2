@@ -10,16 +10,16 @@ namespace Managers
         //Game States
         public GMLoad gmLoadState;
         public GMStart gmStartState;
-        public GMWin gmWinState;
-        public GMLose gmLoseState;
+        public GMCompleted gmCompletedState;
+        public GMFailed gmFailedState;
         public GMReset gmResetState;
         
         private void Awake()
         {
             gmLoadState = new GMLoad(this);
             gmStartState = new GMStart(this);
-            gmWinState = new GMWin(this);
-            gmLoseState = new GMLose(this);
+            gmCompletedState = new GMCompleted(this);
+            gmFailedState = new GMFailed(this);
             gmResetState = new GMReset(this);
         }
         

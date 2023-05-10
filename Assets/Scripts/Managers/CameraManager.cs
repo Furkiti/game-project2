@@ -11,42 +11,47 @@ namespace Managers
         [SerializeField]private CinemachineVirtualCamera playerFollowerCam;
         [SerializeField]private CinemachineVirtualCamera levelCompletedCam;
         private CinemachineVirtualCamera _currentCam;
-        
-        
-        private readonly WaitForEndOfFrame _waitForEndOfFrame = new WaitForEndOfFrame();
         [SerializeField]private float levelCompletedCamRotationSpeed=30;
-        private CinemachineOrbitalTransposer _orbitalTransposer;
-        private float _angle;
         private bool _isCameraRotating;
         
         private void OnEnable()
         {
             EventManager.OnGameLoaded += OnGameLoaded;
+            EventManager.OnGameStarted += OnGameStarted;
             EventManager.OnGameCompleted += OnGameCompleted;
+            EventManager.OnGameContinue += OnGameContinue;
         }
     
         private void OnDisable()
         {
             EventManager.OnGameLoaded -= OnGameLoaded;
+            EventManager.OnGameStarted -= OnGameStarted;
+            EventManager.OnGameCompleted -= OnGameCompleted;
+            EventManager.OnGameContinue -= OnGameContinue;
         }
 
         private void OnGameLoaded()
         {
-            _orbitalTransposer = levelCompletedCam.GetCinemachineComponent<CinemachineOrbitalTransposer>();
             _currentCam = mainMenuCam;
             ChangeCamera(mainMenuCam,.6f);
         }
-        
-        private void GameStarted()
-        {
-            
-        }
 
+        private void OnGameStarted()
+        {
+            ChangeCamera(playerFollowerCam);
+        }
+        
         private void OnGameCompleted()
         {
-            
+            ChangeCamera(levelCompletedCam);
+            StartCoroutine(RotateCam(levelCompletedCam));
         }
         
+        private void OnGameContinue()
+        {
+            ChangeCamera(playerFollowerCam);
+            _isCameraRotating = false;
+        }
         private void ChangeCamera(CinemachineVirtualCamera newCam,float blendTime)
         {
             mainCameraBrain.m_DefaultBlend.m_Time = blendTime;
@@ -60,17 +65,18 @@ namespace Managers
             _currentCam.Priority = 11;
         }
         
-        private IEnumerator RotateCam()
+        private IEnumerator RotateCam(CinemachineVirtualCamera rotatedCam)
         {
             _isCameraRotating = true;
-            _angle = _orbitalTransposer.m_Heading.m_Bias;
+            var orbitalTransposer = rotatedCam.GetCinemachineComponent<CinemachineOrbitalTransposer>();
+            var angle = orbitalTransposer.m_Heading.m_Bias;
             while (_isCameraRotating)
             {
-                _angle += levelCompletedCamRotationSpeed * Time.deltaTime;
-                var val = Mathf.Repeat(_angle, 360);
+                angle += levelCompletedCamRotationSpeed * Time.deltaTime;
+                var val = Mathf.Repeat(angle, 360);
                 var ratio=Mathf.InverseLerp(0, 360, val);
-                _orbitalTransposer.m_Heading.m_Bias = Mathf.Lerp(-180, 180, ratio);
-                yield return _waitForEndOfFrame;
+                orbitalTransposer.m_Heading.m_Bias = Mathf.Lerp(-180, 180, ratio);
+                yield return new WaitForEndOfFrame();
             }
         }
         

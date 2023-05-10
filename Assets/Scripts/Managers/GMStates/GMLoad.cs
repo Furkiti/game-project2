@@ -14,9 +14,7 @@ namespace Managers.GMStates
         public override void Enter()
         {
             base.Enter();
-        
             EventManager.OnGameLoaded.Invoke();
-            GameManager.Instance.ChangeState(GameManager.Instance.gmStartState);
         }
 
         public override void UpdateLogic()
