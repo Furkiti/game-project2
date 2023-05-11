@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using DG.Tweening;
 using Managers;
@@ -7,29 +8,21 @@ namespace Gameplay
 {
     public class Player : MonoBehaviour
     {
-        [SerializeField]private Transform player;
-        [SerializeField]private Transform playerHolder;
-        public AnimationController animationController;
-        public float GroundCheckInterval;
-        private LevelDatas levelDatas;
+        [SerializeField]private Transform playerTransform;
+        [SerializeField]private Transform playerHolderTransform;
+        [SerializeField] AnimationController animationController;
+        [SerializeField]private Rigidbody playerRigidbody;
+        private LevelDatas currentLevelDatas;
         private float playerSpeed;
-        private WaitForSeconds waitForGroundCheckInterval;
-        private bool running;
-        private Rigidbody rb;
-
-        private void Awake()
-        {
-            rb = playerHolder.GetComponent<Rigidbody>();
-            waitForGroundCheckInterval = new WaitForSeconds(GroundCheckInterval);
-        }
-
+        private bool isGrounded = true;
+        
         private void OnEnable()
         {
             EventManager.OnGameStarted += OnGameStarted;
             EventManager.OnLevelReady+= OnLevelReady;
             EventManager.OnGameContinue += OnGameContinue;
             EventManager.OnGameReset += OnGameReset;
-            EventManager.OnPathChange += OnPathChange;
+            EventManager.OnNewLineCreated += OnNewLineCreated;
         }
         
         private void OnDisable()
@@ -38,101 +31,94 @@ namespace Gameplay
             EventManager.OnLevelReady -= OnLevelReady;
             EventManager.OnGameContinue -= OnGameContinue;
             EventManager.OnGameReset -= OnGameReset;
-            EventManager.OnPathChange -= OnPathChange;
+            EventManager.OnNewLineCreated -= OnNewLineCreated;
         }
-        private void ResetModel()
-        {
-            player.localPosition = Vector3.zero;
-            rb.isKinematic = true;
-            rb.useGravity = false;
-            rb.transform.localPosition = Vector3.zero;
-            animationController.CurrentAnimationState = AnimationController.AnimationState.Idle;
-            player.DOKill();
-        }
+      
 
         private void OnLevelReady(LevelDatas levelDatas)
         {
-            this.levelDatas = levelDatas;
-            if (this.levelDatas.Speed < GroundCheckInterval)
-            {
-                GroundCheckInterval = this.levelDatas.Speed / 2f;
-            }
-            ResetModel();
+            this.currentLevelDatas = levelDatas;
+            PlayerModelAdjustment();
         }
         
-        private void OnPathChange(float xPosition)
+        private void OnNewLineCreated(float newPos)
         {
-            player.DOLocalMoveX(xPosition, levelDatas.Speed / 2f);
+            playerTransform.DOLocalMoveX(newPos, currentLevelDatas.Speed / 4f);
         }
 
         private void OnGameReset()
         {
-            ResetModel();
+            PlayerModelAdjustment();
         }
 
         private void OnGameContinue()
         {
-            ResetModel();
+            PlayerModelAdjustment();
         }
 
         private void OnGameStarted()
         {
-            DOVirtual.DelayedCall(levelDatas.Speed/2f, StartMoving);
+            DOVirtual.DelayedCall(currentLevelDatas.Speed/2f, PlayerStartMoving);
+        }
+        
+        private void PlayerModelAdjustment()
+        {
+            playerTransform.localPosition = Vector3.zero;
+            playerRigidbody.isKinematic = true;
+            playerRigidbody.useGravity = false;
+            playerRigidbody.transform.localPosition = Vector3.zero;
+            animationController.CurrentAnimationState = AnimationController.AnimationState.Idle;
+            playerTransform.DOKill();
         }
 
-        private void StartMoving()
+        private void PlayerStartMoving()
         {
-            var finalPosition =  levelDatas.FinalPosition;
-            var pieceSpeed= levelDatas.Length / levelDatas.Speed;
+            var finalPosition =  currentLevelDatas.FinalPosition;
+            var pieceSpeed= currentLevelDatas.Length / currentLevelDatas.Speed;
             playerSpeed = finalPosition / pieceSpeed;
-            player.DOLocalMoveZ(finalPosition,playerSpeed )
-                .SetEase(Ease.Linear).OnComplete(MoveComplete);
+            playerTransform.DOLocalMoveZ(finalPosition,playerSpeed )
+                .SetEase(Ease.Linear).OnComplete(PlayerMovementDone);
             animationController.CurrentAnimationState = AnimationController.AnimationState.Running;
-            running = true;
-            StartCoroutine(GroundCheck());
         }
 
-        private void MoveComplete()
+        private void PlayerMovementDone()
         {
-            running = false;
             animationController.CurrentAnimationState = AnimationController.AnimationState.Dancing;
             GameManager.Instance.ChangeState(GameManager.Instance.gmCompletedState);
         }
 
-        private void FailJump()
+        private void PlayerFalling()
         {
-            if(!running)
+            if(animationController.CurrentAnimationState != AnimationController.AnimationState.Running)
                 return;
+            
             StopAllCoroutines();
-            running = false;
-            rb.isKinematic = false;
-            rb.useGravity = true;
+            playerRigidbody.isKinematic = false;
+            playerRigidbody.useGravity = true;
             animationController.CurrentAnimationState = AnimationController.AnimationState.Falling;
-            DOVirtual.Float(1, 7.5f,1.5f ,SlowDown)
-                .SetDelay(1).OnComplete(TriggerFailEvent);
-        }
-        
-        private void SlowDown(float val)
-        {
-            rb.drag = val;
-        }
-
-        private void TriggerFailEvent()
-        {
             GameManager.Instance.ChangeState(GameManager.Instance.gmFailedState);
         }
 
-        private IEnumerator GroundCheck()
+        private void Update()
         {
-            while (running)
+            if (animationController.CurrentAnimationState == AnimationController.AnimationState.Running)
             {
-                if (!Physics.Raycast(playerHolder.position+Vector3.up*levelDatas.Height/2f, Vector3.down, levelDatas.Height))
+                if (!Physics.Raycast(playerHolderTransform.position + Vector3.up * currentLevelDatas.Height / 2f, Vector3.down, currentLevelDatas.Height))
                 {
-                    player.DOKill();
-                    FailJump();
+                    if (isGrounded)
+                    {
+                        playerTransform.DOKill();
+                        PlayerFalling();
+                    }
+                    isGrounded = false;
                 }
-                yield return waitForGroundCheckInterval;
+                else
+                {
+                    isGrounded = true;
+                }
             }
         }
+
+        
     }
 }

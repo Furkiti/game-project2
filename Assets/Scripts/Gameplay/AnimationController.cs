@@ -6,7 +6,7 @@ namespace Gameplay
 {
     public class AnimationController : MonoBehaviour
     {
-        public static event Action<AnimationState> OnUnitAnimationChanged;
+        private static event Action<AnimationState> OnUnitAnimationChanged;
 
         [Header("Info")]
         [ReadOnly] [SerializeField] private AnimationState currentAnimationState = AnimationState.Idle;

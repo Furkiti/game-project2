@@ -1,5 +1,7 @@
+using System;
 using DG.Tweening;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Managers
 {
@@ -50,7 +52,7 @@ namespace Managers
                 EventManager.OnLevelNumberChanged?.Invoke(value);
             }
         }
-
+        
         private void OnEnable()
         {
             EventManager.OnGameLoaded += OnGameLoaded;

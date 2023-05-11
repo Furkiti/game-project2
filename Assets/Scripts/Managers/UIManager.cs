@@ -69,6 +69,7 @@ namespace Managers
         EventManager.OnGameStarted += OnGameStarted;
         EventManager.OnGameFailed += OnGameFailed;
         EventManager.OnGameCompleted += OnGameCompleted;
+        EventManager.OnGameContinue += OnGameContinue;
         EventManager.OnGameReset += OnGameReset;
         tapToStartButton.onClick.AddListener(OnTapToStartButtonClicked);
         continueButton.onClick.AddListener(OnContinueButtonClicked);
@@ -80,6 +81,7 @@ namespace Managers
         EventManager.OnGameStarted -= OnGameStarted;
         EventManager.OnGameFailed -= OnGameFailed;
         EventManager.OnGameCompleted -= OnGameCompleted;
+        EventManager.OnGameContinue -= OnGameContinue;
         EventManager.OnGameReset -= OnGameReset;
         tapToStartButton.onClick.RemoveListener(OnTapToStartButtonClicked);
         continueButton.onClick.RemoveListener(OnContinueButtonClicked);
@@ -101,6 +103,12 @@ namespace Managers
     {
         DeactivateUIElements(_inGameUIElements);
         ActivateUIElements(_gameCompletedUIElements);
+    }
+
+    private void OnGameContinue()
+    {
+        DeactivateUIElements(_gameCompletedUIElements);
+        ActivateUIElements(_mainMenuUIElements);
     }
 
     private void OnGameFailed()

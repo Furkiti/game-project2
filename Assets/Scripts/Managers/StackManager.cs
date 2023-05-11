@@ -1,7 +1,9 @@
+using System;
 using DG.Tweening;
 using DG.Tweening.Core;
 using DG.Tweening.Plugins.Options;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Managers
 {
@@ -14,11 +16,10 @@ namespace Managers
     {
         public GameObject pieceBlockPrefab;
         public GameObject finishLinePrefab;
-        
         public Transform stack;
         public Transform stackPrevious;
-        
         public float cuttedBlockKillTime;
+        [SerializeField] private Material[] stackColors;
         
         
         private float spawnXDistance;
@@ -30,12 +31,12 @@ namespace Managers
         private GameObject finish;
         private float finishLength;
         private int pieceCount;
-        private float colorCount;
-        //private PairedGradient targetColor;
-        //private PairGradient sourceColor;
+        private int colorCount;
+       
         
         private void OnEnable()
         {
+            EventManager.OnGameLoaded += OnGameLoad;
             EventManager.OnGameStarted += OnGameStarted;
             EventManager.OnGameReset += OnGameReset;
             EventManager.OnGameFailed += OnGameFailed;
@@ -44,10 +45,16 @@ namespace Managers
 
         private void OnDisable()
         {
+            EventManager.OnGameLoaded -= OnGameLoad;
             EventManager.OnGameStarted -= OnGameStarted;
             EventManager.OnGameReset -= OnGameReset;
             EventManager.OnGameFailed -= OnGameFailed;
             EventManager.OnLevelReady -= OnLevelReady;
+        }
+
+        private void OnGameLoad()
+        {
+            finishLength = finishLinePrefab.GetComponent<MeshRenderer>().bounds.extents.z;
         }
         
         private void OnGameStarted()
@@ -60,13 +67,13 @@ namespace Managers
         private void OnGameReset()
         {
             pieceCount = 0;
-            //first two object are finish line and starting piece respectively
+            
             for (int i = stack.childCount - 1; i > 1; i--)
             {
                 Destroy(stack.GetChild(i).gameObject);
             }
-
-            currentPiece = stack.GetChild(1);
+            
+            currentPiece = stack.GetChild(0);
         }
         
         private void OnGameFailed()
@@ -75,32 +82,31 @@ namespace Managers
             currentPiece.DOKill();
         }
         
-        private void OnLevelReady(LevelDatas levelDatas)
+        private void OnLevelReady(LevelDatas levelData)
         {
             pieceCount = 0;
-            if (stack.childCount > 1) // previously completed a level
+            if (stack.childCount > 1)
             {
                 for (int i = stack.childCount - 1; i >= 0; i--)
                 {
-                    stack.GetChild(i).SetParent(stack, true);
+                    stack.GetChild(i).SetParent(stackPrevious, true);
                 }
 
                 var previousPos = stackPrevious.localPosition;
-                var gap = finishLength + levelDatas.Length / 2f;
-                previousPos.z -= this.levelDatas.FinalPosition + gap;
+                var gap = finishLength + levelData.Length / 2f;
+                previousPos.z -= levelDatas.FinalPosition + gap;
                 stackPrevious.localPosition = previousPos;
-                this.levelDatas = levelDatas;
+                levelDatas = levelData;
                 currentPiece = CreateStartingPiece(0);
-                finish = Instantiate(finishLinePrefab, new Vector3(0, 0, levelDatas.FinalPosition),
+                finish = Instantiate(finishLinePrefab, new Vector3(0, 0, levelData.FinalPosition),
                     Quaternion.identity, stack);
             }
-            else // new load
+            else
             {
-                this.levelDatas = levelDatas;
-                finish = Instantiate(finishLinePrefab, new Vector3(0, 0, levelDatas.FinalPosition),
-                    Quaternion.identity, stack);
-                //GetRandomStartingGradient();
+                levelDatas = levelData;
                 currentPiece = CreateStartingPiece(0);
+                finish = Instantiate(finishLinePrefab, new Vector3(0, 0, levelData.FinalPosition),
+                    Quaternion.identity, stack);
             }
         }
         
@@ -109,7 +115,7 @@ namespace Managers
             var go = Instantiate(pieceBlockPrefab, stack).transform;
             go.localPosition = new Vector3(0, levelDatas.Height / -2f, levelDatas.Length * offsetZ);
             go.localScale = new Vector3(levelDatas.Width, levelDatas.Height, levelDatas.Length);
-            //go.GetComponent<MeshRenderer>().material.color = GetNewColor();
+            go.GetComponent<MeshRenderer>().material.color = GetNewColor();
             return go;
         }
         
@@ -124,7 +130,7 @@ namespace Managers
             var horizontalPosition = (spawnXDistance + currentScale.x / 2f) * direction;
             var startingPosition = new Vector3(horizontalPosition, currentPos.y, currentPos.z + currentScale.z);
             piece.localPosition = startingPosition;
-            //piece.GetComponent<MeshRenderer>().material.color = GetNewColor();
+            piece.GetComponent<MeshRenderer>().material.color = GetNewColor();
             tween = piece.DOLocalMoveX(-startingPosition.x, levelDatas.Speed).SetEase(Ease.Linear);
             prevPiece = currentPiece;
             currentPiece = piece;
@@ -191,7 +197,7 @@ namespace Managers
             currentPiece.localScale = new Vector3(cutWidth, currentScale.y, currentScale.z);
             var centeredPositionX = currentPosition.x - widthDifference / 2f;
             currentPiece.localPosition = new Vector3(centeredPositionX, currentPosition.y, currentPosition.z);
-            EventManager.OnPathChange?.Invoke(centeredPositionX);
+            EventManager.OnNewLineCreated?.Invoke(centeredPositionX);
             var cutPiece = Instantiate(currentPiece, stack);
             var cutScale = cutPiece.localScale;
             cutScale.x = absWidthDifference;
@@ -207,25 +213,11 @@ namespace Managers
             DOVirtual.DelayedCall(remainingTime, OnPiecePlaced);
         }
 
-        /*private Color GetNewColor()
+        private Color GetNewColor()
         {
             colorCount++;
-            if (colorCount >= targetColor.Length)
-            {
-                colorCount = 0;
-                sourceColor = targetColor.Pair;
-                targetColor = sourceColor.PairGradients[Random.Range(0, sourceColor.PairGradients.Count)];
-            }
-
-            return Color.Lerp(sourceColor.Color, targetColor.Pair.Color, colorCount / targetColor.Length);
+            return stackColors[(colorCount - 1) % stackColors.Length].color;
         }
-
-        private void GetRandomStartingGradient()
-        {
-            var index = Random.Range(0, Gradients.Count);
-            sourceColor = Gradients[index];
-            targetColor = sourceColor.PairGradients[Random.Range(0, sourceColor.PairGradients.Count)];
-        }*/
         
     }
 }
