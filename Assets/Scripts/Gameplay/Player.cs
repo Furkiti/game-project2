@@ -9,17 +9,17 @@ namespace Gameplay
     {
         [SerializeField]private Transform player;
         [SerializeField]private Transform playerHolder;
-        //public Model Model;
+        public AnimationController animationController;
         public float GroundCheckInterval;
         private LevelDatas levelDatas;
         private float playerSpeed;
         private WaitForSeconds waitForGroundCheckInterval;
         private bool running;
-        private Rigidbody body;
+        private Rigidbody rb;
 
         private void Awake()
         {
-            body = playerHolder.GetComponent<Rigidbody>();
+            rb = playerHolder.GetComponent<Rigidbody>();
             waitForGroundCheckInterval = new WaitForSeconds(GroundCheckInterval);
         }
 
@@ -43,10 +43,10 @@ namespace Gameplay
         private void ResetModel()
         {
             player.localPosition = Vector3.zero;
-            body.isKinematic = true;
-            body.useGravity = false;
-            body.transform.localPosition = Vector3.zero;
-            //Model.Idle();
+            rb.isKinematic = true;
+            rb.useGravity = false;
+            rb.transform.localPosition = Vector3.zero;
+            animationController.CurrentAnimationState = AnimationController.AnimationState.Idle;
             player.DOKill();
         }
 
@@ -87,7 +87,7 @@ namespace Gameplay
             playerSpeed = finalPosition / pieceSpeed;
             player.DOLocalMoveZ(finalPosition,playerSpeed )
                 .SetEase(Ease.Linear).OnComplete(MoveComplete);
-            //Model.Run();
+            animationController.CurrentAnimationState = AnimationController.AnimationState.Running;
             running = true;
             StartCoroutine(GroundCheck());
         }
@@ -95,8 +95,8 @@ namespace Gameplay
         private void MoveComplete()
         {
             running = false;
-            //Model.Dance();
-            EventManager.OnGameCompleted?.Invoke();
+            animationController.CurrentAnimationState = AnimationController.AnimationState.Dancing;
+            GameManager.Instance.ChangeState(GameManager.Instance.gmCompletedState);
         }
 
         private void FailJump()
@@ -105,21 +105,21 @@ namespace Gameplay
                 return;
             StopAllCoroutines();
             running = false;
-            body.isKinematic = false;
-            body.useGravity = true;
-            //Model.Fail();
+            rb.isKinematic = false;
+            rb.useGravity = true;
+            animationController.CurrentAnimationState = AnimationController.AnimationState.Falling;
             DOVirtual.Float(1, 7.5f,1.5f ,SlowDown)
                 .SetDelay(1).OnComplete(TriggerFailEvent);
         }
         
         private void SlowDown(float val)
         {
-            body.drag = val;
+            rb.drag = val;
         }
 
         private void TriggerFailEvent()
         {
-            EventManager.OnGameFailed?.Invoke();
+            GameManager.Instance.ChangeState(GameManager.Instance.gmFailedState);
         }
 
         private IEnumerator GroundCheck()

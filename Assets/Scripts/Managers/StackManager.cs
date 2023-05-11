@@ -151,8 +151,10 @@ namespace Managers
         {
             if (!inputEnabled)
                 return;
+            
             if (!Input.GetMouseButtonDown(0))
                 return;
+            
             inputEnabled = false;
             var remainingTime = 0f;
             if (tween.active)
@@ -168,17 +170,12 @@ namespace Managers
             var absoluteWidthDifference = Mathf.Abs(widthDifference);
 
 
-            if (absoluteWidthDifference < levelDatas.ToleranceWidth) //perfect
+            if (absoluteWidthDifference < levelDatas.ToleranceWidth) 
             {
                 currentPosition.x = prevPosition.x;
                 currentPiece.localPosition = currentPosition;
                 DOVirtual.DelayedCall(remainingTime, OnPiecePlaced);
                 EventManager.OnStackBlockPlaced?.Invoke(StackPlacement.Perfect);
-            }
-            else if (absoluteWidthDifference > currentScale.x)
-            {
-                //early or late tap (out of bounds)
-                //do nothing for now
             }
             else
             {

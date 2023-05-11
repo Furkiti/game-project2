@@ -13,6 +13,7 @@ namespace Managers
         public GMCompleted gmCompletedState;
         public GMFailed gmFailedState;
         public GMReset gmResetState;
+        public GMContinue gmContinue;
         
         private void Awake()
         {
@@ -21,6 +22,7 @@ namespace Managers
             gmCompletedState = new GMCompleted(this);
             gmFailedState = new GMFailed(this);
             gmResetState = new GMReset(this);
+            gmContinue = new GMContinue(this);
         }
         
 

@@ -16,13 +16,17 @@ namespace Managers
     [Header("Canvases")]
     [SerializeField]private RectTransform mainMenuCanvas;
     [SerializeField]private RectTransform inGameCanvas;
+    [SerializeField]private RectTransform gameCompletedCanvas;
+    [SerializeField]private RectTransform gameFailedCanvas;
     
     [SerializeField] private Button tapToStartButton;
+    [SerializeField] private Button continueButton;
     
     
     private List<UIElement> _mainMenuUIElements = new List<UIElement>();
     private List<UIElement> _inGameUIElements = new List<UIElement>();
     private List<UIElement> _gameCompletedUIElements = new List<UIElement>();
+    private List<UIElement> _gameFailedUIElements = new List<UIElement>();
     
     private float _canvasX;
     private float _canvasY;
@@ -49,37 +53,76 @@ namespace Managers
         {
             _inGameUIElements.Add(uiElement);
         }
+        foreach (UIElement uiElement in gameCompletedCanvas.gameObject.GetComponentsInChildren<UIElement>())
+        {
+            _gameCompletedUIElements.Add(uiElement);
+        }
+        foreach (UIElement uiElement in gameFailedCanvas.gameObject.GetComponentsInChildren<UIElement>())
+        {
+            _gameFailedUIElements.Add(uiElement);
+        }
     }
 
     private void OnEnable()
     {
-        EventManager.OnGameLoaded += LevelLoaded;
-        EventManager.OnGameStarted += LevelStarted;
+        EventManager.OnGameLoaded += OnGameLoaded;
+        EventManager.OnGameStarted += OnGameStarted;
+        EventManager.OnGameFailed += OnGameFailed;
+        EventManager.OnGameCompleted += OnGameCompleted;
+        EventManager.OnGameReset += OnGameReset;
         tapToStartButton.onClick.AddListener(OnTapToStartButtonClicked);
+        continueButton.onClick.AddListener(OnContinueButtonClicked);
     }
     
     private void OnDisable()
     {
-        EventManager.OnGameLoaded -= LevelLoaded;
-        EventManager.OnGameStarted -= LevelStarted;
+        EventManager.OnGameLoaded -= OnGameLoaded;
+        EventManager.OnGameStarted -= OnGameStarted;
+        EventManager.OnGameFailed -= OnGameFailed;
+        EventManager.OnGameCompleted -= OnGameCompleted;
+        EventManager.OnGameReset -= OnGameReset;
         tapToStartButton.onClick.RemoveListener(OnTapToStartButtonClicked);
+        continueButton.onClick.RemoveListener(OnContinueButtonClicked);
     }
     
     
-    private void LevelLoaded()
+    private void OnGameLoaded()
     {
         ActivateUIElements(_mainMenuUIElements);
     }
     
-    private void LevelStarted()
+    private void OnGameStarted()
     {
         DeactivateUIElements(_mainMenuUIElements);
         ActivateUIElements(_inGameUIElements);
     }
 
+    private void OnGameCompleted()
+    {
+        DeactivateUIElements(_inGameUIElements);
+        ActivateUIElements(_gameCompletedUIElements);
+    }
+
+    private void OnGameFailed()
+    {
+        DeactivateUIElements(_inGameUIElements);
+        ActivateUIElements(_gameFailedUIElements);
+    }
+
+    private void OnGameReset()
+    {
+        DeactivateUIElements(_gameFailedUIElements);
+        ActivateUIElements(_mainMenuUIElements);
+    }
+
     private void OnTapToStartButtonClicked()
     {
-        EventManager.OnGameStarted?.Invoke();
+        GameManager.Instance.ChangeState(GameManager.Instance.gmStartState);
+    }
+    
+    private void OnContinueButtonClicked()
+    {
+        GameManager.Instance.ChangeState(GameManager.Instance.gmContinue);
     }
 
     private void LevelCompleted(int level)

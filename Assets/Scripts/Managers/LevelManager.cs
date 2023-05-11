@@ -84,7 +84,7 @@ namespace Managers
         
         private void TriggerReplay()
         {
-            EventManager.OnGameReset?.Invoke();
+            GameManager.Instance.ChangeState(GameManager.Instance.gmResetState);
         }
         
         private void LoadNewLevel()

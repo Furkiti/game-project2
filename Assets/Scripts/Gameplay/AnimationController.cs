@@ -10,7 +10,6 @@ namespace Gameplay
 
         [Header("Info")]
         [ReadOnly] [SerializeField] private AnimationState currentAnimationState = AnimationState.Idle;
-
         
         //todo dependinciesleri kullanılan classa göre ayır
         [Header("Dependencies")]
@@ -35,15 +34,14 @@ namespace Gameplay
             set
             {
                 if (currentAnimationState == value) return;
-            
-                SetAnimatorTrigger(currentAnimationState, false);
+                
                 currentAnimationState = value;
-                SetAnimatorTrigger(value, true);
+                SetAnimatorTrigger(value);
                 OnUnitAnimationChanged?.Invoke(value);
             }
         }
     
-        private void SetAnimatorTrigger(AnimationState value, bool boolean)
+        private void SetAnimatorTrigger(AnimationState value)
         {
             switch (value)
             {
