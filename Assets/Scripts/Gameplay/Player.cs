@@ -10,9 +10,8 @@ namespace Gameplay
         [SerializeField]private Transform player;
         [SerializeField]private Transform playerHolder;
         //public Model Model;
-        public bool AdaptChanges;
         public float GroundCheckInterval;
-        private LevelDatas param;
+        private LevelDatas levelDatas;
         private float playerSpeed;
         private WaitForSeconds waitForGroundCheckInterval;
         private bool running;
@@ -53,19 +52,17 @@ namespace Gameplay
 
         private void OnLevelReady(LevelDatas levelDatas)
         {
-            param = levelDatas;
-            if (param.Speed < GroundCheckInterval)
+            this.levelDatas = levelDatas;
+            if (this.levelDatas.Speed < GroundCheckInterval)
             {
-                GroundCheckInterval = param.Speed / 2f;
+                GroundCheckInterval = this.levelDatas.Speed / 2f;
             }
             ResetModel();
         }
         
         private void OnPathChange(float xPosition)
         {
-            if(!AdaptChanges)
-                return;
-            player.DOLocalMoveX(xPosition, param.Speed / 2f);
+            player.DOLocalMoveX(xPosition, levelDatas.Speed / 2f);
         }
 
         private void OnGameReset()
@@ -80,13 +77,13 @@ namespace Gameplay
 
         private void OnGameStarted()
         {
-            DOVirtual.DelayedCall(param.Speed/2f, StartMoving);
+            DOVirtual.DelayedCall(levelDatas.Speed/2f, StartMoving);
         }
 
         private void StartMoving()
         {
-            var finalPosition =  param.FinalPosition;
-            var pieceSpeed= param.Length / param.Speed;
+            var finalPosition =  levelDatas.FinalPosition;
+            var pieceSpeed= levelDatas.Length / levelDatas.Speed;
             playerSpeed = finalPosition / pieceSpeed;
             player.DOLocalMoveZ(finalPosition,playerSpeed )
                 .SetEase(Ease.Linear).OnComplete(MoveComplete);
@@ -125,11 +122,11 @@ namespace Gameplay
             EventManager.OnGameFailed?.Invoke();
         }
 
-        IEnumerator GroundCheck()
+        private IEnumerator GroundCheck()
         {
             while (running)
             {
-                if (!Physics.Raycast(playerHolder.position+Vector3.up*param.Height/2f, Vector3.down, param.Height))
+                if (!Physics.Raycast(playerHolder.position+Vector3.up*levelDatas.Height/2f, Vector3.down, levelDatas.Height))
                 {
                     player.DOKill();
                     FailJump();
