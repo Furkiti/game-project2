@@ -15,7 +15,6 @@ namespace Managers
         public static Action OnGameFailed;
         public static Action OnGameReset;
         public static Action OnGameContinue;
-        public static Action<int> OnLevelNumberChanged;
         public static Action<LevelDatas> OnLevelReady;
         public static Action<float> OnNewLineCreated;
         public static Action<StackPlacement> OnStackBlockPlaced;

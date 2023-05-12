@@ -19,9 +19,12 @@ namespace Managers
     [SerializeField]private RectTransform gameCompletedCanvas;
     [SerializeField]private RectTransform gameFailedCanvas;
     
+    [Header("Buttons")]
     [SerializeField] private Button tapToStartButton;
     [SerializeField] private Button continueButton;
     
+    [Header("Others")]
+    [SerializeField] private TextMeshProUGUI levelTMP;
     
     private List<UIElement> _mainMenuUIElements = new List<UIElement>();
     private List<UIElement> _inGameUIElements = new List<UIElement>();
@@ -133,10 +136,9 @@ namespace Managers
         GameManager.Instance.ChangeState(GameManager.Instance.gmContinue);
     }
 
-    private void LevelCompleted(int level)
+    public void SetLevelText(int level)
     {
-        DeactivateUIElements(_inGameUIElements);
-        ActivateUIElements(_gameCompletedUIElements);
+        levelTMP.text = "Level " + level;
     }
     
     private void ActivateUIElements(List<UIElement> uiElements)

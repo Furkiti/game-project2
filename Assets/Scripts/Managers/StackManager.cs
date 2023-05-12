@@ -22,15 +22,15 @@ namespace Managers
         [SerializeField] private Material[] stackColors;
         
         
-        private float spawnXDistance;
-        private Transform currentPiece;
-        private Transform prevPiece;
-        private bool inputEnabled;
-        private TweenerCore<Vector3, Vector3, VectorOptions> tween;
+        private float spawnDistanceX;
+        private Transform currentBlockTransform;
+        private Transform previousPieceTransform;
+        private bool enableInput;
+        private TweenerCore<Vector3, Vector3, VectorOptions> blockTween;
         private LevelDatas levelDatas;
         private GameObject finish;
         private float finishLength;
-        private int pieceCount;
+        private int blockCount;
         private int colorCount;
        
         
@@ -59,32 +59,32 @@ namespace Managers
         
         private void OnGameStarted()
         {
-            inputEnabled = true;
-            spawnXDistance = levelDatas.Width;
-            CreateNewPiece();
+            enableInput = true;
+            spawnDistanceX = levelDatas.Width;
+            CreateNewBlock();
         }
         
         private void OnGameReset()
         {
-            pieceCount = 0;
+            blockCount = 0;
             
             for (int i = stack.childCount - 1; i > 1; i--)
             {
                 Destroy(stack.GetChild(i).gameObject);
             }
             
-            currentPiece = stack.GetChild(0);
+            currentBlockTransform = stack.GetChild(0);
         }
         
         private void OnGameFailed()
         {
-            inputEnabled = false;
-            currentPiece.DOKill();
+            enableInput = false;
+            currentBlockTransform.DOKill();
         }
         
         private void OnLevelReady(LevelDatas levelData)
         {
-            pieceCount = 0;
+            blockCount = 0;
             if (stack.childCount > 1)
             {
                 for (int i = stack.childCount - 1; i >= 0; i--)
@@ -97,20 +97,20 @@ namespace Managers
                 previousPos.z -= levelDatas.FinalPosition + gap;
                 stackPrevious.localPosition = previousPos;
                 levelDatas = levelData;
-                currentPiece = CreateStartingPiece(0);
+                currentBlockTransform = CreateStartingBlock(0);
                 finish = Instantiate(finishLinePrefab, new Vector3(0, 0, levelData.FinalPosition),
                     Quaternion.identity, stack);
             }
             else
             {
                 levelDatas = levelData;
-                currentPiece = CreateStartingPiece(0);
+                currentBlockTransform = CreateStartingBlock(0);
                 finish = Instantiate(finishLinePrefab, new Vector3(0, 0, levelData.FinalPosition),
                     Quaternion.identity, stack);
             }
         }
         
-        private Transform CreateStartingPiece(float offsetZ)
+        private Transform CreateStartingBlock(float offsetZ)
         {
             var go = Instantiate(pieceBlockPrefab, stack).transform;
             go.localPosition = new Vector3(0, levelDatas.Height / -2f, levelDatas.Length * offsetZ);
@@ -119,21 +119,21 @@ namespace Managers
             return go;
         }
         
-        private void CreateNewPiece()
+        private void CreateNewBlock()
         {
-            pieceCount++;
-            var piece = Instantiate(currentPiece, stack).transform;
-            piece.name = "p" + pieceCount;
+            blockCount++;
+            var block = Instantiate(currentBlockTransform, stack).transform;
+            block.name = "block" + blockCount;
             var direction = GetRandomDirection();
-            var currentPos = currentPiece.localPosition;
-            var currentScale = currentPiece.localScale;
-            var horizontalPosition = (spawnXDistance + currentScale.x / 2f) * direction;
+            var currentPos = currentBlockTransform.localPosition;
+            var currentScale = currentBlockTransform.localScale;
+            var horizontalPosition = (spawnDistanceX + currentScale.x / 2f) * direction;
             var startingPosition = new Vector3(horizontalPosition, currentPos.y, currentPos.z + currentScale.z);
-            piece.localPosition = startingPosition;
-            piece.GetComponent<MeshRenderer>().material.color = GetNewColor();
-            tween = piece.DOLocalMoveX(-startingPosition.x, levelDatas.Speed).SetEase(Ease.Linear);
-            prevPiece = currentPiece;
-            currentPiece = piece;
+            block.localPosition = startingPosition;
+            block.GetComponent<MeshRenderer>().material.color = GetNewColor();
+            blockTween = block.DOLocalMoveX(-startingPosition.x, levelDatas.Speed).SetEase(Ease.Linear);
+            previousPieceTransform = currentBlockTransform;
+            currentBlockTransform = block;
         }
         
         
@@ -142,36 +142,36 @@ namespace Managers
             return Random.value > 0.5f ? 1 : -1;
         }
 
-        private void OnPiecePlaced()
+        private void OnBlockPlaced()
         {
-            if (pieceCount >= levelDatas.PieceCount)
+            if (blockCount >= levelDatas.PieceCount)
             {
                 return;
             }
 
-            CreateNewPiece();
-            inputEnabled = true;
+            CreateNewBlock();
+            enableInput = true;
         }
 
         private void Update()
         {
-            if (!inputEnabled)
+            if (!enableInput)
                 return;
             
             if (!Input.GetMouseButtonDown(0))
                 return;
             
-            inputEnabled = false;
+            enableInput = false;
             var remainingTime = 0f;
-            if (tween.active)
+            if (blockTween.active)
             {
-                remainingTime = tween.Duration() - tween.Elapsed();
-                tween.Kill();
+                remainingTime = blockTween.Duration() - blockTween.Elapsed();
+                blockTween.Kill();
             }
 
-            var currentPosition = currentPiece.localPosition;
-            var currentScale = currentPiece.localScale;
-            var prevPosition = prevPiece.localPosition;
+            var currentPosition = currentBlockTransform.localPosition;
+            var currentScale = currentBlockTransform.localScale;
+            var prevPosition = previousPieceTransform.localPosition;
             var widthDifference = currentPosition.x - prevPosition.x;
             var absoluteWidthDifference = Mathf.Abs(widthDifference);
 
@@ -179,8 +179,8 @@ namespace Managers
             if (absoluteWidthDifference < levelDatas.ToleranceWidth) 
             {
                 currentPosition.x = prevPosition.x;
-                currentPiece.localPosition = currentPosition;
-                DOVirtual.DelayedCall(remainingTime, OnPiecePlaced);
+                currentBlockTransform.localPosition = currentPosition;
+                DOVirtual.DelayedCall(remainingTime, OnBlockPlaced);
                 EventManager.OnStackBlockPlaced?.Invoke(StackPlacement.Perfect);
             }
             else
@@ -194,11 +194,11 @@ namespace Managers
             float widthDifference, float remainingTime)
         {
             var cutWidth = currentScale.x - absWidthDifference;
-            currentPiece.localScale = new Vector3(cutWidth, currentScale.y, currentScale.z);
+            currentBlockTransform.localScale = new Vector3(cutWidth, currentScale.y, currentScale.z);
             var centeredPositionX = currentPosition.x - widthDifference / 2f;
-            currentPiece.localPosition = new Vector3(centeredPositionX, currentPosition.y, currentPosition.z);
+            currentBlockTransform.localPosition = new Vector3(centeredPositionX, currentPosition.y, currentPosition.z);
             EventManager.OnNewLineCreated?.Invoke(centeredPositionX);
-            var cutPiece = Instantiate(currentPiece, stack);
+            var cutPiece = Instantiate(currentBlockTransform, stack);
             var cutScale = cutPiece.localScale;
             cutScale.x = absWidthDifference;
             var cutDirection = Mathf.Sign(widthDifference);
@@ -210,7 +210,7 @@ namespace Managers
             body.isKinematic = false;
             body.AddForce(new Vector3(cutDirection * levelDatas.Length, 0, 0), ForceMode.Impulse);
             Destroy(cutPiece.gameObject, cuttedBlockKillTime);
-            DOVirtual.DelayedCall(remainingTime, OnPiecePlaced);
+            DOVirtual.DelayedCall(remainingTime, OnBlockPlaced);
         }
 
         private Color GetNewColor()

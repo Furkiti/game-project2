@@ -49,7 +49,6 @@ namespace Managers
             set
             {
                 Save.Save.SetSavedData(levelStr, value);
-                EventManager.OnLevelNumberChanged?.Invoke(value);
             }
         }
         
@@ -70,12 +69,14 @@ namespace Managers
         private void OnGameLoaded()
         {
             finishLength = FinishLinePrefab.GetComponent<MeshRenderer>().bounds.extents.z;
+            UIManager.Instance.SetLevelText(CurrentLevel);
             LoadNewLevel();
         }
         
         private void OnContinueNewLevel()
         {
             CurrentLevel++;
+            UIManager.Instance.SetLevelText(CurrentLevel);
             LoadNewLevel();
         }
         
